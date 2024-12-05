@@ -29,6 +29,7 @@ class ReactionT5Yield(nn.Module):
         self.fc3 = nn.Linear(self.config.hidden_size//2*2, self.config.hidden_size)
         self.fc4 = nn.Linear(self.config.hidden_size, self.config.hidden_size)
         self.fc5 = nn.Linear(self.config.hidden_size, 1)
+        self.sigmoid = nn.Sigmoid() # add sigmoid to control the output range in [0,1]
 
         self._init_weights(self.fc1)
         self._init_weights(self.fc2)
@@ -62,6 +63,7 @@ class ReactionT5Yield(nn.Module):
         output = self.fc3(self.fc_dropout2(torch.hstack((output1, output2))))
         output = self.fc4(output)
         output = self.fc5(output)
+        output = self.sigmoid(self.fc5(output))
         return output
     
     
