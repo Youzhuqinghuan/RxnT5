@@ -17,7 +17,8 @@ class ReactionT5Yield(nn.Module):
                 self.model = AutoModel.from_pretrained(self.cfg.pretrained_model_name_or_path)
         else:
             if 't5' in self.cfg.model:
-                self.model = T5ForConditionalGeneration.from_pretrained('sagawa/CompoundT5')
+                # self.model = T5ForConditionalGeneration.from_pretrained('sagawa/CompoundT5')
+                self.model = T5ForConditionalGeneration.from_pretrained('./model', local_files_only=True)
             else:
                 self.model = AutoModel.from_config(self.config)
         self.model.resize_token_embeddings(len(self.cfg.tokenizer))
@@ -63,7 +64,7 @@ class ReactionT5Yield(nn.Module):
         output = self.fc3(self.fc_dropout2(torch.hstack((output1, output2))))
         output = self.fc4(output)
         output = self.fc5(output)
-        output = self.sigmoid(self.fc5(output))
+        output = self.sigmoid(output)
         return output
     
     

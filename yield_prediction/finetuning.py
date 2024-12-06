@@ -95,14 +95,14 @@ def parse_args():
     parser.add_argument(
         "--patience", 
         type=int, 
-        default=5, 
+        default=3, 
         required=False,
         help="Early stopping patience."
     )
     parser.add_argument(
         "--lr", 
         type=float, 
-        default=5e-6, 
+        default=1e-6, 
         required=False,
         help="Learning rate."
     )
@@ -130,7 +130,7 @@ def parse_args():
     parser.add_argument(
         "--fc_dropout", 
         type=float, 
-        default=0.0, 
+        default=0.2, 
         required=False,
         help="Drop out rate after fully connected layers."
     )
@@ -285,6 +285,14 @@ class TrainDataset(Dataset):
         
         return inputs, label
     
+def log_cosh_loss(y_pred, y_true):
+    """
+    Log-Cosh Loss implementation.
+    This is more robust to outliers compared to MSE.
+    """
+    loss = torch.log(torch.cosh(y_pred - y_true))
+    return loss.mean()
+
 
 def train_fn(train_loader, model, criterion, optimizer, epoch, scheduler, device):
     model.train()
@@ -327,30 +335,62 @@ def train_fn(train_loader, model, criterion, optimizer, epoch, scheduler, device
     return losses.avg
 
 
+# def valid_fn(valid_loader, model, criterion, device):
+#     losses = AverageMeter()
+#     model.eval()
+#     start = end = time.time()
+#     label_list = []
+#     pred_list = []
+#     for step, (inputs, labels) in enumerate(valid_loader):
+#         for k, v in inputs.items():
+#             inputs[k] = v.to(device)
+#         with torch.no_grad():
+#             y_preds = model(inputs)
+#         label_list += labels.tolist()
+#         pred_list += y_preds.tolist()
+#         end = time.time()
+#         if step % CFG.print_freq == 0 or step == (len(valid_loader)-1):
+#             print('EVAL: [{0}/{1}] '
+#                   'Elapsed {remain:s} '
+#                   'RMSE Loss: {loss:.4f} '
+#                   'r2 score: {r2_score:.4f} '
+#                   .format(step, len(valid_loader),
+#                           loss=mean_squared_error(label_list, pred_list, squared=False),
+#                           remain=timeSince(start, float(step+1)/len(valid_loader)),
+#                           r2_score=r2_score(label_list, pred_list)))
+#     return mean_squared_error(label_list, pred_list), r2_score(label_list, pred_list)
+    
 def valid_fn(valid_loader, model, criterion, device):
     losses = AverageMeter()
     model.eval()
     start = end = time.time()
     label_list = []
     pred_list = []
+
     for step, (inputs, labels) in enumerate(valid_loader):
         for k, v in inputs.items():
             inputs[k] = v.to(device)
         with torch.no_grad():
             y_preds = model(inputs)
-        label_list += labels.tolist()
-        pred_list += y_preds.tolist()
+        label_list += labels.cpu().tolist()
+        pred_list += y_preds.cpu().view(-1).tolist()  # Flatten predictions to match labels
+        loss = criterion(torch.tensor(pred_list, device=device), torch.tensor(label_list, device=device))
+        losses.update(loss.item(), len(labels))
+        
         end = time.time()
-        if step % CFG.print_freq == 0 or step == (len(valid_loader)-1):
+        if step % CFG.print_freq == 0 or step == (len(valid_loader) - 1):
             print('EVAL: [{0}/{1}] '
                   'Elapsed {remain:s} '
-                  'RMSE Loss: {loss:.4f} '
-                  'r2 score: {r2_score:.4f} '
+                  'Loss: {loss:.4f} '
                   .format(step, len(valid_loader),
-                          loss=mean_squared_error(label_list, pred_list, squared=False),
-                          remain=timeSince(start, float(step+1)/len(valid_loader)),
-                          r2_score=r2_score(label_list, pred_list)))
-    return mean_squared_error(label_list, pred_list), r2_score(label_list, pred_list)
+                          loss=losses.avg,
+                          remain=timeSince(start, float(step+1)/len(valid_loader))))
+
+    r2 = r2_score(label_list, pred_list)
+    
+    return losses.avg, r2
+
+
     
 def inference_fn(test_loader, model, device):
     preds = []
@@ -387,7 +427,8 @@ def train_loop(train_ds, valid_ds):
     num_train_steps = int(len(train_ds)/CFG.batch_size*CFG.epochs)
     scheduler = get_linear_schedule_with_warmup(optimizer, num_warmup_steps=CFG.num_warmup_steps, num_training_steps=num_train_steps)
     
-    criterion = nn.MSELoss(reduction='mean')
+    # criterion = nn.MSELoss(reduction='mean')
+    criterion = log_cosh_loss
     best_loss = float('inf')
     es_count = 0
     
