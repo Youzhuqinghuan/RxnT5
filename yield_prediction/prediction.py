@@ -35,6 +35,13 @@ def parse_args():
         help=" Data as a string or CSV file that contains an 'input' column. The format of the string or contents of the column are like 'REACTANT:{reactants of the reaction}PRODUCT:{products of the reaction}'. If there are multiple reactants, concatenate them with '.'.(ex. 'REACTANT:NCCO.O=C1COCC(=O)O1CATALYST: REAGENT: SOLVENT:c1ccncc1NoData: '"
     )
     parser.add_argument(
+        "--fold", 
+        type=str, 
+        default="1", 
+        required=False,
+        help="Model name used for prediction. Currentry, only t5 is expected."
+    )
+    parser.add_argument(
         "--pretrained_model_name_or_path", 
         type=str, 
         required=False,
@@ -78,7 +85,7 @@ def parse_args():
     parser.add_argument(
         "--batch_size", 
         type=int, 
-        default=5, 
+        default=1, 
         required=False,
         help="Batch size."
     )
@@ -177,7 +184,7 @@ def inference_fn(test_loader, model, device):
 
 model = ReactionT5Yield(CFG, config_path=CFG.model_name_or_path + '/config.pth', pretrained=False)
 # state = torch.load(CFG.model_name_or_path + '/ZINC-t5_best.pth', map_location=torch.device('cpu'))
-state = torch.load(CFG.model_name_or_path + '/output/finetuned_model.pth', map_location=torch.device('cpu'))
+state = torch.load(CFG.model_name_or_path + f'/output/finetuned_model_fold{CFG.fold}.pth', map_location=torch.device('cpu'))
 model.load_state_dict(state)
 
 

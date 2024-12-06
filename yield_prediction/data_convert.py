@@ -6,8 +6,8 @@ input_file = './data/datav2.csv'
 output_file = './data/data.csv'
 
 # 定义划分比例
-train_ratio = 0.8
-val_ratio = 0.1
+train_ratio = 0.9
+val_ratio = 0
 test_ratio = 0.1
 
 # 读取原始CSV文件
@@ -36,7 +36,18 @@ with open(output_file.replace('.csv', '_train.csv'), mode='w', newline='') as tr
         reactant = row['Biaryl']
         if row['Olefin']:
             reactant += f".{row['Olefin']}"
-        reagent = row['Solvent'] if row['Solvent'] else " "
+        
+        # 连接Catalyst, Additive, Solvent，确保没有多余的点
+        reagents = []
+        if row['Catalyst']:
+            reagents.append(row['Catalyst'])
+        if row['Additive']:
+            reagents.append(row['Additive'])
+        if row['Solvent']:
+            reagents.append(row['Solvent'])
+        
+        reagent = '.'.join(reagents) if reagents else " "  # 连接非空的值
+        
         product = row['Product']
         yield_value = row['Yeild']
         writer.writerow([reactant, reagent, product, yield_value])
@@ -49,7 +60,18 @@ with open(output_file.replace('.csv', '_val.csv'), mode='w', newline='') as valf
         reactant = row['Biaryl']
         if row['Olefin']:
             reactant += f".{row['Olefin']}"
-        reagent = row['Solvent'] if row['Solvent'] else " "
+        
+        # 连接Catalyst, Additive, Solvent，确保没有多余的点
+        reagents = []
+        if row['Catalyst']:
+            reagents.append(row['Catalyst'])
+        if row['Additive']:
+            reagents.append(row['Additive'])
+        if row['Solvent']:
+            reagents.append(row['Solvent'])
+        
+        reagent = '.'.join(reagents) if reagents else " "  # 连接非空的值
+        
         product = row['Product']
         yield_value = row['Yeild']
         writer.writerow([reactant, reagent, product, yield_value])
@@ -62,7 +84,18 @@ with open(output_file.replace('.csv', '_test.csv'), mode='w', newline='') as tes
         reactant = row['Biaryl']
         if row['Olefin']:
             reactant += f".{row['Olefin']}"
-        reagent = row['Solvent'] if row['Solvent'] else " "
+        
+        # 连接Catalyst, Additive, Solvent，确保没有多余的点
+        reagents = []
+        if row['Catalyst']:
+            reagents.append(row['Catalyst'])
+        if row['Additive']:
+            reagents.append(row['Additive'])
+        if row['Solvent']:
+            reagents.append(row['Solvent'])
+        
+        reagent = '.'.join(reagents) if reagents else " "  # 连接非空的值
+        
         product = row['Product']
         yield_value = row['Yeild']
         writer.writerow([reactant, reagent, product, yield_value])
